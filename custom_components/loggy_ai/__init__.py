@@ -104,12 +104,21 @@ async def _register_services(hass: HomeAssistant, coordinator: LoggyDataUpdateCo
 
 async def _setup_dashboard_and_welcome(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up the dashboard and send a welcome notification."""
-    # Get the dashboard YAML path from the integration directory
-    integration_dir = os.path.dirname(__file__)
+    # Get the dashboard YAML path - it's located at the repository root
+    # The integration is at custom_components/loggy_ai, so go up 2 levels
     dashboard_yaml_path = os.path.join(
-        os.path.dirname(os.path.dirname(integration_dir)),
+        hass.config.config_dir,
+        "custom_components",
         "loggy_ai_dashboard.yaml"
     )
+    
+    # If not found there, check the repository root (development/HACS installation)
+    if not os.path.exists(dashboard_yaml_path):
+        integration_dir = os.path.dirname(__file__)
+        dashboard_yaml_path = os.path.join(
+            os.path.dirname(os.path.dirname(integration_dir)),
+            "loggy_ai_dashboard.yaml"
+        )
     
     try:
         # Create the lovelace dashboard
