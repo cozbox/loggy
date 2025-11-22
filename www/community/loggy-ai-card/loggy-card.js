@@ -123,6 +123,9 @@ class LoggyCard extends HTMLElement {
         <div id="content"></div>
       </ha-card>
     `;
+    
+    // Add event listener only once during initial render
+    this._boundTriggerAnalysis = this.triggerAnalysis.bind(this);
   }
 
   updateContent() {
@@ -183,8 +186,12 @@ class LoggyCard extends HTMLElement {
 
     this.shadowRoot.getElementById('content').innerHTML = content;
 
+    // Remove previous listener if it exists, then add new one
     const analyzeBtn = this.shadowRoot.getElementById('analyze-btn');
-    analyzeBtn.addEventListener('click', () => this.triggerAnalysis());
+    if (analyzeBtn) {
+      analyzeBtn.removeEventListener('click', this._boundTriggerAnalysis);
+      analyzeBtn.addEventListener('click', this._boundTriggerAnalysis);
+    }
   }
 
   formatAnalysis(text) {
@@ -201,13 +208,19 @@ class LoggyCard extends HTMLElement {
     this._hass.callService('loggy_ai', 'analyze_logs', {});
     
     const analyzeBtn = this.shadowRoot.getElementById('analyze-btn');
-    analyzeBtn.disabled = true;
-    analyzeBtn.textContent = '⏳ Analyzing...';
-    
-    setTimeout(() => {
-      analyzeBtn.disabled = false;
-      analyzeBtn.textContent = '▶️ Analyze Now';
-    }, 5000);
+    if (analyzeBtn) {
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = '⏳ Analyzing...';
+      
+      // Reset button state after a reasonable time
+      // Analysis typically takes 10-60 seconds depending on log size
+      setTimeout(() => {
+        if (analyzeBtn) {
+          analyzeBtn.disabled = false;
+          analyzeBtn.textContent = '▶️ Analyze Now';
+        }
+      }, 30000); // 30 seconds to allow for analysis completion
+    }
   }
 
   getCardSize() {

@@ -94,7 +94,7 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
                 message = parts[1][:100].strip()
                 return f"{component}|{message}"
             return log_line[:150]
-        except Exception:
+        except (IndexError, AttributeError):
             return log_line[:150]
 
     def _read_and_filter_logs(self) -> tuple[str, int, int]:
@@ -127,10 +127,12 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
 
                 # Try to parse date and filter
                 try:
-                    timestamp_str = line.split(" ")[0] + " " + line.split(" ")[1]
-                    log_date = datetime.fromisoformat(timestamp_str.split(".")[0])
-                    if log_date <= cutoff_date:
-                        continue
+                    parts = line.split(" ")
+                    if len(parts) >= 2:
+                        timestamp_str = parts[0] + " " + parts[1]
+                        log_date = datetime.fromisoformat(timestamp_str.split(".")[0])
+                        if log_date <= cutoff_date:
+                            continue
                 except (ValueError, IndexError):
                     # If we can't parse date, include the line anyway
                     pass
