@@ -21,9 +21,9 @@ DEFAULT_PROVIDER = "gemini"
 
 PROVIDERS = {
     "gemini": {
-        "name": "Google Gemini 3.0",
-        "models": ["gemini-3.0-pro-preview", "gemini-2.5-flash-latest"],
-        "default_model": "gemini-3.0-pro-preview"
+        "name": "Google Gemini",
+        "models": ["gemini-2.5-pro", "gemini-2.5-flash-latest", "gemini-3.0-pro-preview"],
+        "default_model": "gemini-2.5-pro"
     },
     "openai": {
         "name": "OpenAI",

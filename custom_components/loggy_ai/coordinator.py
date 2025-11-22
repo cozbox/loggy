@@ -159,26 +159,27 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
     ) -> str:
         """Call Gemini API for analysis."""
         try:
-            import google.generativeai as genai
+            from google import genai
+            from google.genai import types
 
-            genai.configure(api_key=api_key)
+            client = genai.Client(api_key=api_key)
 
-            generation_config = {
+            config_dict = {
                 "temperature": 0.7,
                 "top_p": 0.95,
                 "max_output_tokens": 8192,
             }
 
-            # Add thinking_level for Gemini 3.0 models
+            # Add thinking_level for Gemini 3.0 models only
             if "3.0" in model or "3-0" in model:
-                generation_config["thinking_level"] = thinking_level
+                config_dict["thinking_level"] = thinking_level
 
-            model_instance = genai.GenerativeModel(
-                model_name=model, generation_config=generation_config
-            )
+            config = types.GenerateContentConfig(**config_dict)
 
             response = await self.hass.async_add_executor_job(
-                model_instance.generate_content, prompt
+                lambda: client.models.generate_content(
+                    model=model, contents=prompt, config=config
+                )
             )
 
             if response and hasattr(response, "text"):
