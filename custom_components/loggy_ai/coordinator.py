@@ -23,7 +23,6 @@ from .const import (
     DEFAULT_LOG_PATH,
     DEFAULT_THINKING_LEVEL,
     PROVIDERS,
-    LOG_FILE_NOT_FOUND_MSG,
     LOG_PATHS,
 )
 
