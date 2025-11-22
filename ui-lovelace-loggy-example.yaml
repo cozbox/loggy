@@ -3,8 +3,8 @@
 # 
 # Usage:
 # 1. If you use ui-lovelace.yaml for your main dashboard, add this view to it
-# 2. Copy the content below and paste it into your ui-lovelace.yaml file
-# 3. The view will appear as a new tab in your dashboard
+# 2. Copy the content below (starting from "title: Loggy AI")
+# 3. Paste it as a new entry in the 'views:' section of your ui-lovelace.yaml file
 #
 # Example ui-lovelace.yaml structure:
 # title: Home
@@ -13,10 +13,14 @@
 #     cards:
 #       - type: entities
 #         ...
-#   - title: Loggy AI    # <-- Add the view below here
+#   - title: Loggy AI    # <-- Add this view here (paste the content below as a new list item)
 #     icon: mdi:robot
+#     path: loggy-ai
 #     cards:
 #       ...
+#
+# Copy from here:
+# --------------------------------------------------
 
 title: Loggy AI
 icon: mdi:robot

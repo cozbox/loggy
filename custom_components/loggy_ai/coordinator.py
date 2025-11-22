@@ -109,12 +109,7 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
         ]
         
         # Remove duplicates while preserving order
-        seen = set()
-        unique_paths = []
-        for path in common_paths:
-            if path not in seen:
-                seen.add(path)
-                unique_paths.append(path)
+        unique_paths = list(dict.fromkeys(common_paths))
         
         # Try each path
         for path in unique_paths:

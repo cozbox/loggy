@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import shutil
 import yaml
 from datetime import datetime, timedelta
 
@@ -148,7 +149,6 @@ async def _copy_to_dashboards_folder(hass: HomeAssistant, source_path: str, dest
         
         # Only copy if it doesn't exist or is outdated
         if not os.path.exists(dest_path):
-            import shutil
             shutil.copy2(source_path, dest_path)
             return True
         return False
@@ -230,7 +230,8 @@ async def _send_welcome_notification(
         if "dashboards" in dashboard_methods:
             setup_info.append("📁 Dashboard file copied to `config/dashboards/loggy_ai.yaml`")
         
-        setup_text = "\n- ".join(setup_info)
+        # Format as markdown list with proper prefixes
+        setup_text = "- " + "\n- ".join(setup_info)
         
         message = f"""
 ## 🎉 Welcome to Loggy AI!
@@ -239,7 +240,7 @@ Your AI-powered log analyzer is now set up with **{provider_name}**.
 
 ### ✅ What's Ready:
 - 🤖 AI-powered log analysis with auto-detect log file path
-- {setup_text}
+{setup_text}
 - 🔔 Automated issue tracking
 - 📈 Error and warning monitoring
 
