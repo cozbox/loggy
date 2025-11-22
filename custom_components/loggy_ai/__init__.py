@@ -53,7 +53,7 @@ async def _setup_scheduled_analysis(
     schedule_time_str = entry.data.get(CONF_SCHEDULE_TIME, "22:00:00")
     
     try:
-        hour, minute, second = map(int, schedule_time_str.split("";"))
+        hour, minute, second = map(int, schedule_time_str.split(":"))
         
         async def scheduled_analysis_callback(now):
             """Run scheduled analysis."""

@@ -1,3 +1,21 @@
 {
-  "additional_string_key": "Additional string value"
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Loggy AI",
+        "description": "Set up your AI-powered log analyzer",
+        "data": {
+          "provider": "AI Provider",
+          "api_key": "API Key",
+          "model": "AI Model",
+          "days_to_review": "Days to Review",
+          "log_path": "Log File Path",
+          "thinking_level": "Thinking Level",
+          "schedule_enabled": "Enable Scheduled Analysis",
+          "schedule_day": "Schedule Day",
+          "schedule_time": "Schedule Time"
+        }
+      }
+    }
+  }
 }
