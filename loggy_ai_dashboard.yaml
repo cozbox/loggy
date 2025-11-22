@@ -1,0 +1,81 @@
+# Loggy AI - Pre-configured Dashboard
+# Copy this to your Home Assistant configuration or import via the UI
+
+title: Loggy AI
+icon: mdi:robot
+path: loggy-ai
+
+views:
+  - title: Log Analysis
+    icon: mdi:text-box-search
+    badges: []
+    cards:
+      # Main Loggy AI Card
+      - type: custom:loggy-card
+        entity: sensor.loggy_ai_log_analyzer_analysis
+
+      # Entity cards for quick access
+      - type: entities
+        title: Quick Actions
+        show_header_toggle: false
+        entities:
+          - entity: button.loggy_ai_log_analyzer_analyze_now
+            name: Analyze Logs Now
+            icon: mdi:play-circle
+
+      # Statistics Grid
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: statistic
+            entity: sensor.loggy_ai_log_analyzer_error_count
+            name: Errors
+            icon: mdi:alert-circle
+            period:
+              calendar:
+                period: day
+          - type: statistic
+            entity: sensor.loggy_ai_log_analyzer_warning_count
+            name: Warnings
+            icon: mdi:alert
+            period:
+              calendar:
+                period: day
+          - type: statistic
+            entity: sensor.loggy_ai_log_analyzer_new_issues_count
+            name: New Issues
+            icon: mdi:new-box
+            period:
+              calendar:
+                period: day
+
+      # History Graph
+      - type: history-graph
+        title: Error & Warning Trends
+        hours_to_show: 168
+        entities:
+          - entity: sensor.loggy_ai_log_analyzer_error_count
+            name: Errors
+          - entity: sensor.loggy_ai_log_analyzer_warning_count
+            name: Warnings
+          - entity: sensor.loggy_ai_log_analyzer_new_issues_count
+            name: New Issues
+
+      # Full Analysis Text
+      - type: markdown
+        title: Latest Analysis Details
+        content: |
+          {% set entity = states['sensor.loggy_ai_log_analyzer_analysis'] %}
+          {% if entity %}
+          **Last Run:** {{ entity.attributes.last_run | default('Never') }}
+          
+          **Provider:** {{ entity.attributes.provider | default('N/A') }}
+          **Model:** {{ entity.attributes.model | default('N/A') }}
+          
+          ---
+          
+          {{ entity.attributes.analysis_text | default('No analysis available yet. Click "Analyze Now" to run your first analysis.') }}
+          {% else %}
+          Integration not found. Please ensure Loggy AI is installed and configured.
+          {% endif %}
