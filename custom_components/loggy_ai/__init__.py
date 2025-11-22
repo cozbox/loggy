@@ -144,10 +144,6 @@ async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> Non
             _LOGGER.warning("Dashboard YAML is empty")
             return
         
-        # Create the dashboard using the lovelace integration
-        # Note: This requires the lovelace integration to be loaded
-        lovelace_config = hass.data.get("lovelace", {})
-        
         # Store dashboard configuration
         storage_path = hass.config.path(".storage")
         os.makedirs(storage_path, exist_ok=True)
