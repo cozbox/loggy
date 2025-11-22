@@ -129,31 +129,65 @@ Use the "Analyze Now" button in the Loggy AI dashboard card.
 
 ### Quick Start Dashboard Setup
 
-For the best experience, Loggy AI includes a pre-configured dashboard with all features ready to use:
+Loggy AI provides multiple ways to set up the dashboard, making it work with any Home Assistant configuration:
 
-1. **Copy the dashboard configuration:**
-   - Download or copy the contents of `loggy_ai_dashboard.yaml` from the repository
-   
-2. **Add to Home Assistant:**
-   
-   **Option A - Via UI (Recommended):**
-   - Go to **Settings** → **Dashboards**
-   - Click **+ Add Dashboard**
-   - Enter title: "Loggy AI"
-   - Select icon: `mdi:robot`
-   - Click **Create**
-   - Click the three dots menu on the new dashboard
-   - Select **Edit Dashboard**
-   - Click the three dots again and select **Raw configuration editor**
-   - Paste the contents of `loggy_ai_dashboard.yaml`
-   - Click **Save**
+#### 🎯 Automatic Setup (Recommended)
 
-   **Option B - Add as a View to Existing Dashboard:**
-   - Edit your dashboard
-   - Click **Add View**
-   - Switch to YAML mode
-   - Paste the view section from `loggy_ai_dashboard.yaml`
-   - Click **Save**
+After installing, Loggy AI will **automatically**:
+- Create a dashboard in your UI (check sidebar for "Loggy AI")
+- Copy dashboard file to `config/dashboards/loggy_ai.yaml` (if folder exists)
+- Auto-detect your log file location from common paths
+
+**Just install and go!** The dashboard should appear in your sidebar.
+
+#### 📂 Manual Setup Options
+
+If automatic setup doesn't work, choose the option that matches your Home Assistant configuration:
+
+**Option 1 - UI Dashboard (Storage Mode)**
+1. Go to **Settings** → **Dashboards** → **+ Add Dashboard**
+2. Enter title: "Loggy AI" with icon `mdi:robot`
+3. Click **Create**
+4. Click the three dots → **Edit Dashboard** → **Raw configuration editor**
+5. Copy and paste the contents of `loggy_ai_dashboard.yaml`
+6. Click **Save**
+
+**Option 2 - Dashboards Folder**
+1. Copy `dashboards/loggy_ai.yaml` to your `config/dashboards/` folder
+2. Add this to your `configuration.yaml`:
+   ```yaml
+   lovelace:
+     dashboards:
+       loggy-ai:
+         mode: yaml
+         title: Loggy AI
+         icon: mdi:robot
+         show_in_sidebar: true
+         filename: dashboards/loggy_ai.yaml
+   ```
+3. Restart Home Assistant
+
+**Option 3 - Lovelace YAML Mode (Legacy)**
+1. Copy the view from `ui-lovelace-loggy-example.yaml`
+2. Add it to your `ui-lovelace.yaml` file
+3. Add the custom card resource (if not already added):
+   ```yaml
+   lovelace:
+     mode: yaml
+     resources:
+       - url: /local/community/loggy-ai-card/loggy-card.js
+         type: module
+   ```
+4. Restart Home Assistant
+
+**Option 4 - Add as a View to Existing Dashboard**
+- Edit your existing dashboard
+- Click **Add View**
+- Switch to YAML mode
+- Paste the view section from `loggy_ai_dashboard.yaml`
+- Click **Save**
+
+📚 **See `configuration.yaml.example` for complete configuration examples**
 
 The pre-configured dashboard includes:
 - Main Loggy AI custom card with statistics and analysis
@@ -249,7 +283,14 @@ To change the provider or API key, you must remove and re-add the integration.
 
 ### Custom Log Paths
 
-If your logs are in a non-standard location, specify the full path during setup:
+**Loggy AI automatically detects your log file location!** It checks these common paths:
+- `/config/home-assistant.log` (Docker/HA OS/Supervised)
+- `~/.homeassistant/home-assistant.log` (Core)
+- `/usr/share/hassio/homeassistant/home-assistant.log` (Alternative supervised)
+
+If your log file is in a non-standard location, you can specify the full path during setup. The integration will still try to auto-detect if your specified path isn't found.
+
+**Common locations by installation type:**
 - Docker: `/config/home-assistant.log`
 - Home Assistant OS: `/config/home-assistant.log`
 - Supervised: `/config/home-assistant.log`

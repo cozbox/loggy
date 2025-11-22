@@ -98,18 +98,51 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
         except (IndexError, AttributeError):
             return log_line[:150]
 
+    def _find_log_file(self, configured_path: str) -> str:
+        """Find the log file by checking common locations."""
+        # Common log file locations in order of preference
+        common_paths = [
+            configured_path,  # User-configured path first
+            "/config/home-assistant.log",  # Docker/HA OS/Supervised
+            os.path.expanduser("~/.homeassistant/home-assistant.log"),  # Core
+            "/usr/share/hassio/homeassistant/home-assistant.log",  # Alternative supervised
+        ]
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_paths = []
+        for path in common_paths:
+            if path not in seen:
+                seen.add(path)
+                unique_paths.append(path)
+        
+        # Try each path
+        for path in unique_paths:
+            if os.path.exists(path) and os.path.isfile(path):
+                if path != configured_path:
+                    _LOGGER.info(f"Log file found at {path} (configured path {configured_path} not found)")
+                return path
+        
+        # If no file found, raise error with all attempted paths
+        error_msg = (
+            f"Log file not found at configured path: {configured_path}\n\n"
+            f"Also checked these common locations:\n"
+            + "\n".join([f"  • {p}" for p in unique_paths[1:]])
+            + "\n\nPlease verify the path exists and is accessible."
+        )
+        _LOGGER.error(error_msg)
+        raise UpdateFailed(error_msg)
+
     def _read_and_filter_logs(self) -> tuple[str, int, int]:
         """Read logs and filter by date range and severity."""
-        log_path = self.config_entry.data.get(CONF_LOG_PATH, DEFAULT_LOG_PATH)
+        configured_path = self.config_entry.data.get(CONF_LOG_PATH, DEFAULT_LOG_PATH)
         days_to_review = self.config_entry.data.get(
             CONF_DAYS_TO_REVIEW, DEFAULT_DAYS_TO_REVIEW
         )
 
         try:
-            if not os.path.exists(log_path):
-                error_msg = LOG_FILE_NOT_FOUND_MSG.format(path=log_path)
-                _LOGGER.error(error_msg)
-                raise UpdateFailed(error_msg)
+            # Auto-detect log file location
+            log_path = self._find_log_file(configured_path)
 
             with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
                 log_content = f.read()

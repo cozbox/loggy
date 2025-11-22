@@ -1,0 +1,97 @@
+# Example Lovelace view for Loggy AI
+# For users with YAML mode dashboards (ui-lovelace.yaml)
+# 
+# Usage:
+# 1. If you use ui-lovelace.yaml for your main dashboard, add this view to it
+# 2. Copy the content below and paste it into your ui-lovelace.yaml file
+# 3. The view will appear as a new tab in your dashboard
+#
+# Example ui-lovelace.yaml structure:
+# title: Home
+# views:
+#   - title: Home
+#     cards:
+#       - type: entities
+#         ...
+#   - title: Loggy AI    # <-- Add the view below here
+#     icon: mdi:robot
+#     cards:
+#       ...
+
+title: Loggy AI
+icon: mdi:robot
+path: loggy-ai
+badges: []
+cards:
+  # Main Loggy AI Card
+  - type: custom:loggy-card
+    entity: sensor.loggy_ai_log_analyzer_analysis
+
+  # Entity cards for quick access
+  - type: entities
+    title: Quick Actions
+    show_header_toggle: false
+    entities:
+      - entity: button.loggy_ai_log_analyzer_analyze_now
+        name: Analyze Logs Now
+        icon: mdi:play-circle
+
+  # Statistics Grid
+  - type: grid
+    columns: 3
+    square: false
+    cards:
+      - type: statistic
+        entity: sensor.loggy_ai_log_analyzer_error_count
+        name: Errors
+        icon: mdi:alert-circle
+        period:
+          calendar:
+            period: day
+      - type: statistic
+        entity: sensor.loggy_ai_log_analyzer_warning_count
+        name: Warnings
+        icon: mdi:alert
+        period:
+          calendar:
+            period: day
+      - type: statistic
+        entity: sensor.loggy_ai_log_analyzer_new_issues_count
+        name: New Issues
+        icon: mdi:new-box
+        period:
+          calendar:
+            period: day
+
+  # History Graph
+  - type: history-graph
+    title: Error & Warning Trends
+    hours_to_show: 168
+    entities:
+      - entity: sensor.loggy_ai_log_analyzer_error_count
+        name: Errors
+      - entity: sensor.loggy_ai_log_analyzer_warning_count
+        name: Warnings
+      - entity: sensor.loggy_ai_log_analyzer_new_issues_count
+        name: New Issues
+
+  # Full Analysis Text
+  - type: markdown
+    title: Latest Analysis Details
+    content: |
+      {% set last_run = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'last_run') %}
+      {% set provider = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'provider') %}
+      {% set model = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'model') %}
+      {% set analysis = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'analysis_text') %}
+      {% if states('sensor.loggy_ai_log_analyzer_analysis') != 'unknown' %}
+      **Last Run:** {{ last_run | default('Never') }}
+      
+      **Provider:** {{ provider | default('N/A') }}
+      **Model:** {{ model | default('N/A') }}
+      
+      ---
+      
+      {{ analysis | default('No analysis available yet. Click "Analyze Now" to run your first analysis.') }}
+      {% else %}
+      Integration not found. Please ensure Loggy AI is installed and configured.
+      {% endif %}
