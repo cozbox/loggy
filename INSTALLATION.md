@@ -189,6 +189,41 @@ Fill out the configuration form:
 
 ## Dashboard Setup
 
+### Quick Setup with Pre-configured Dashboard (Recommended)
+
+Loggy AI includes a ready-to-use dashboard with all features configured:
+
+1. **Download the dashboard file:**
+   - Get `loggy_ai_dashboard.yaml` from the [GitHub repository](https://github.com/cozbox/loggy)
+
+2. **Create the dashboard in Home Assistant:**
+   - Go to **Settings** → **Dashboards**
+   - Click **+ Add Dashboard**
+   - Enter:
+     - **Title**: `Loggy AI`
+     - **Icon**: `mdi:robot`
+     - **URL**: `loggy-ai` (or leave default)
+   - Click **Create**
+
+3. **Import the configuration:**
+   - Click the **three dots** (⋮) on the new Loggy AI dashboard
+   - Select **Edit Dashboard**
+   - Click the **three dots** again
+   - Select **Raw configuration editor**
+   - Copy and paste the entire contents of `loggy_ai_dashboard.yaml`
+   - Click **Save**
+
+The pre-configured dashboard includes:
+- 📊 Main Loggy AI card with all statistics
+- 🎯 Quick action button
+- 📈 Individual statistic cards
+- 📉 7-day historical trend graph
+- 📝 Full analysis details
+
+### Manual Card Setup
+
+If you prefer to add just the card to an existing dashboard:
+
 ### Step 1: Add the Custom Card Resource
 
 1. Go to **Settings** → **Dashboards**
