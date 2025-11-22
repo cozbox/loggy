@@ -62,6 +62,19 @@ AI-powered log analysis for Home Assistant that automatically identifies, catego
 
 The integration will validate your API key during setup.
 
+### Quick Dashboard Setup (Optional but Recommended)
+
+After configuring the integration, set up the pre-configured dashboard:
+
+1. Download `loggy_ai_dashboard.yaml` from the repository
+2. Go to **Settings** → **Dashboards** → **+ Add Dashboard**
+3. Name it "Loggy AI" with icon `mdi:robot`
+4. Edit the dashboard, switch to raw YAML editor
+5. Paste the contents of `loggy_ai_dashboard.yaml`
+6. Save and enjoy your complete Loggy AI dashboard!
+
+See the [Dashboard Setup](#quick-start-dashboard-setup) section for detailed instructions.
+
 ### Getting API Keys
 
 #### Google Gemini (Recommended)
@@ -114,9 +127,44 @@ service: loggy_ai.analyze_logs
 **Via Custom Card:**
 Use the "Analyze Now" button in the Loggy AI dashboard card.
 
+### Quick Start Dashboard Setup
+
+For the best experience, Loggy AI includes a pre-configured dashboard with all features ready to use:
+
+1. **Copy the dashboard configuration:**
+   - Download or copy the contents of `loggy_ai_dashboard.yaml` from the repository
+   
+2. **Add to Home Assistant:**
+   
+   **Option A - Via UI (Recommended):**
+   - Go to **Settings** → **Dashboards**
+   - Click **+ Add Dashboard**
+   - Enter title: "Loggy AI"
+   - Select icon: `mdi:robot`
+   - Click **Create**
+   - Click the three dots menu on the new dashboard
+   - Select **Edit Dashboard**
+   - Click the three dots again and select **Raw configuration editor**
+   - Paste the contents of `loggy_ai_dashboard.yaml`
+   - Click **Save**
+
+   **Option B - Add as a View to Existing Dashboard:**
+   - Edit your dashboard
+   - Click **Add View**
+   - Switch to YAML mode
+   - Paste the view section from `loggy_ai_dashboard.yaml`
+   - Click **Save**
+
+The pre-configured dashboard includes:
+- Main Loggy AI custom card with statistics and analysis
+- Quick action button for on-demand analysis
+- Individual statistic cards for errors, warnings, and new issues
+- Historical trend graph (7 days)
+- Detailed analysis markdown card with full text
+
 ### Dashboard Card
 
-Add the custom Lovelace card to your dashboard:
+To add just the custom Lovelace card to any dashboard:
 
 1. Edit your dashboard
 2. Click "Add Card"
