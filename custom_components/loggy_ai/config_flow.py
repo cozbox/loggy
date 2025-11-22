@@ -117,14 +117,21 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _validate_gemini_key(self, api_key: str, model: str) -> tuple[bool, str]:
         """Validate Gemini API key."""
         try:
-            import google.generativeai as genai
+            from google import genai
+            from google.genai import types
 
-            genai.configure(api_key=api_key)
-            model_instance = genai.GenerativeModel(model_name=model)
+            client = genai.Client(api_key=api_key)
+
+            config = types.GenerateContentConfig(
+                temperature=0.7,
+                max_output_tokens=50,
+            )
 
             # Make a simple test call
             response = await self.hass.async_add_executor_job(
-                model_instance.generate_content, "Hello"
+                lambda: client.models.generate_content(
+                    model=model, contents="Hello", config=config
+                )
             )
 
             if response and hasattr(response, "text"):

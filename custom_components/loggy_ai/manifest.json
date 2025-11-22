@@ -8,9 +8,9 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/cozbox/loggy/issues",
   "requirements": [
-    "google-generativeai==0.8.5",
+    "google-genai>=1.51.0",
     "openai==1.54.0",
     "anthropic==0.39.0"
   ],
-  "version": "1.0.0"
+  "version": "1.0.1"
 }
