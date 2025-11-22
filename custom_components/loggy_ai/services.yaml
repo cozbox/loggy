@@ -1,9 +1,6 @@
 # Loggy AI services definition
 
-service: analyze_logs
-description: "Analyze logs with the Loggy AI integration."
-fields:
-  key:
-    description: "API key to perform the analysis."
-    required: true
-    type: string
+analyze_logs:
+  name: Analyze logs
+  description: "Manually trigger log analysis with Loggy AI."
+  fields: {}
