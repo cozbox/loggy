@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import shutil
 import yaml
 from datetime import datetime, timedelta
 
@@ -112,18 +113,50 @@ async def _setup_dashboard_and_welcome(hass: HomeAssistant, entry: ConfigEntry) 
     # We look in the parent directory of the custom_components/loggy_ai integration folder
     integration_dir = os.path.dirname(__file__)  # .../custom_components/loggy_ai
     repo_root = os.path.dirname(os.path.dirname(integration_dir))  # .../
-    dashboard_yaml_path = os.path.join(repo_root, "loggy_ai_dashboard.yaml")
     
+    dashboard_methods = []
+    
+    # Try multiple dashboard creation methods
+    # Method 1: Create in storage (UI dashboards)
     try:
-        # Create the lovelace dashboard
+        dashboard_yaml_path = os.path.join(repo_root, "loggy_ai_dashboard.yaml")
         await _create_lovelace_dashboard(hass, dashboard_yaml_path)
-        dashboard_created = True
+        dashboard_methods.append("storage")
+        _LOGGER.info("Created dashboard in storage (accessible from UI)")
     except Exception as err:
-        _LOGGER.warning(f"Could not auto-create dashboard: {err}")
-        dashboard_created = False
+        _LOGGER.warning(f"Could not auto-create dashboard in storage: {err}")
+    
+    # Method 2: Copy to dashboards folder if it exists
+    try:
+        dashboards_source = os.path.join(repo_root, "dashboards", "loggy_ai.yaml")
+        dashboards_folder = hass.config.path("dashboards")
+        if os.path.exists(dashboards_source):
+            await _copy_to_dashboards_folder(hass, dashboards_source, dashboards_folder)
+            dashboard_methods.append("dashboards")
+            _LOGGER.info("Copied dashboard to dashboards folder")
+    except Exception as err:
+        _LOGGER.debug(f"Could not copy to dashboards folder: {err}")
     
     # Send welcome notification
-    await _send_welcome_notification(hass, entry, dashboard_created)
+    await _send_welcome_notification(hass, entry, dashboard_methods)
+
+
+async def _copy_to_dashboards_folder(hass: HomeAssistant, source_path: str, dest_folder: str) -> None:
+    """Copy dashboard YAML to the dashboards folder."""
+    def copy_file():
+        os.makedirs(dest_folder, exist_ok=True)
+        dest_path = os.path.join(dest_folder, "loggy_ai.yaml")
+        
+        # Only copy if it doesn't exist or is outdated
+        if not os.path.exists(dest_path):
+            shutil.copy2(source_path, dest_path)
+            return True
+        return False
+    
+    copied = await hass.async_add_executor_job(copy_file)
+    if copied:
+        _LOGGER.info("Dashboard file copied to dashboards folder")
+
 
 
 async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> None:
@@ -184,20 +217,30 @@ async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> Non
 
 
 async def _send_welcome_notification(
-    hass: HomeAssistant, entry: ConfigEntry, dashboard_created: bool
+    hass: HomeAssistant, entry: ConfigEntry, dashboard_methods: list
 ) -> None:
     """Send a welcome notification with setup instructions."""
     provider_name = entry.data.get("provider", "AI").title()
     
-    if dashboard_created:
+    if dashboard_methods:
+        # Dashboard was created in at least one way
+        setup_info = []
+        if "storage" in dashboard_methods:
+            setup_info.append("📊 **Auto-created Dashboard** - Check your sidebar for \"Loggy AI\"!")
+        if "dashboards" in dashboard_methods:
+            setup_info.append("📁 Dashboard file copied to `config/dashboards/loggy_ai.yaml`")
+        
+        # Format as markdown list with proper prefixes
+        setup_text = "- " + "\n- ".join(setup_info)
+        
         message = f"""
 ## 🎉 Welcome to Loggy AI!
 
 Your AI-powered log analyzer is now set up with **{provider_name}**.
 
 ### ✅ What's Ready:
-- 🤖 AI-powered log analysis
-- 📊 **Auto-created Dashboard** - Check your sidebar for "Loggy AI"!
+- 🤖 AI-powered log analysis with auto-detect log file path
+{setup_text}
 - 🔔 Automated issue tracking
 - 📈 Error and warning monitoring
 
@@ -213,6 +256,12 @@ Your AI-powered log analyzer is now set up with **{provider_name}**.
 - `sensor.loggy_ai_log_analyzer_new_issues_count`
 - `sensor.loggy_ai_log_analyzer_analysis`
 
+### 🎨 Alternative Dashboard Setup Options:
+If you use YAML mode or custom dashboard configurations:
+1. **Dashboards folder**: Reference `dashboards/loggy_ai.yaml` in your config
+2. **Lovelace YAML**: Copy view from `ui-lovelace-loggy-example.yaml`
+3. **Configuration.yaml**: See `configuration.yaml.example` for all options
+
 ### 📚 Documentation:
 [View full documentation](https://github.com/cozbox/loggy)
 
@@ -227,18 +276,29 @@ You can dismiss this notification once you've explored the dashboard.
 Your AI-powered log analyzer is now set up with **{provider_name}**.
 
 ### ✅ What's Ready:
-- 🤖 AI-powered log analysis
+- 🤖 AI-powered log analysis with auto-detect log file path
 - 🔔 Automated issue tracking
 - 📈 Error and warning monitoring
 
-### 📊 Set Up Your Dashboard:
-The dashboard couldn't be created automatically, but you can easily set it up:
+### 📊 Dashboard Setup Options:
+Multiple dashboard files are available to fit your setup:
 
+**Option 1: UI Dashboard (Recommended)**
 1. Go to **Settings** → **Dashboards** → **+ Add Dashboard**
 2. Name it "Loggy AI" with icon `mdi:robot`
-3. Download `loggy_ai_dashboard.yaml` from [GitHub](https://github.com/cozbox/loggy)
-4. Edit the dashboard → Raw config editor → Paste the YAML
+3. Edit dashboard → Raw config editor
+4. Copy contents from `loggy_ai_dashboard.yaml`
 5. Save and enjoy!
+
+**Option 2: Dashboards Folder**
+1. Copy `dashboards/loggy_ai.yaml` to your `config/dashboards/` folder
+2. Add reference in `configuration.yaml` (see `configuration.yaml.example`)
+3. Restart Home Assistant
+
+**Option 3: Lovelace YAML Mode**
+1. Copy view from `ui-lovelace-loggy-example.yaml`
+2. Add to your `ui-lovelace.yaml` file
+3. Restart Home Assistant
 
 ### 🚀 Quick Start (Without Dashboard):
 Run this service to analyze your logs immediately:

@@ -104,22 +104,46 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def _validate_log_path(self, log_path: str) -> bool:
-        """Validate that the log file exists."""
+        """Validate that the log file exists, checking common locations."""
         try:
-            # Check if file exists
-            def check_file():
-                return os.path.exists(log_path) and os.path.isfile(log_path)
+            # Common log file locations to check
+            common_paths = [
+                log_path,
+                "/config/home-assistant.log",
+                os.path.expanduser("~/.homeassistant/home-assistant.log"),
+                "/usr/share/hassio/homeassistant/home-assistant.log",
+            ]
             
-            exists = await self.hass.async_add_executor_job(check_file)
+            def check_files():
+                """Check which files exist."""
+                found_paths = []
+                for path in common_paths:
+                    if os.path.exists(path) and os.path.isfile(path):
+                        found_paths.append(path)
+                return found_paths
             
-            if not exists:
+            found_paths = await self.hass.async_add_executor_job(check_files)
+            
+            if log_path in found_paths:
+                # User's specified path exists
+                return True
+            elif found_paths:
+                # User's path doesn't exist, but we found alternatives
+                _LOGGER.info(
+                    f"Log file not found at: {log_path}. "
+                    f"However, found at: {', '.join(found_paths)}. "
+                    f"Auto-detection will be used at runtime."
+                )
+                # Allow setup to continue - runtime will auto-detect
+                return True
+            else:
+                # No log file found anywhere
                 _LOGGER.warning(
                     f"Log file not found at: {log_path}. "
-                    f"Common locations: /config/home-assistant.log, "
+                    f"Also checked: /config/home-assistant.log, "
                     f"~/.homeassistant/home-assistant.log"
                 )
-            
-            return exists
+                return False
         except Exception as err:
             _LOGGER.error(f"Error validating log path: {err}")
             return False

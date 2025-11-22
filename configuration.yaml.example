@@ -1,0 +1,64 @@
+# Configuration.yaml examples for Loggy AI Dashboard
+# 
+# This file shows different ways to set up the Loggy AI dashboard
+# depending on your Home Assistant configuration.
+#
+# ============================================================================
+# OPTION 1: Using the dashboards folder (Recommended for new users)
+# ============================================================================
+# If you use the dashboards folder approach, simply copy the dashboard file:
+#
+# 1. Copy dashboards/loggy_ai.yaml to your HA config/dashboards/ folder
+# 2. Add this to your configuration.yaml:
+
+lovelace:
+  mode: storage  # or yaml if you use YAML mode
+  dashboards:
+    loggy-ai:
+      mode: yaml
+      title: Loggy AI
+      icon: mdi:robot
+      show_in_sidebar: true
+      filename: dashboards/loggy_ai.yaml
+
+# ============================================================================
+# OPTION 2: Legacy Lovelace (ui-lovelace.yaml)
+# ============================================================================
+# If you use a single ui-lovelace.yaml file for your dashboard:
+#
+# 1. Copy the view from ui-lovelace-loggy-example.yaml
+# 2. Add it to your ui-lovelace.yaml file
+# 3. Add this to your configuration.yaml:
+
+lovelace:
+  mode: yaml
+  resources:
+    - url: /local/community/loggy-ai-card/loggy-card.js
+      type: module
+
+# ============================================================================
+# OPTION 3: Storage mode (UI-managed) with custom card
+# ============================================================================
+# If you use storage mode (default for most users):
+#
+# 1. The dashboard can be created via the UI
+# 2. Add the custom card resource in Settings → Dashboards → Resources:
+#    URL: /local/community/loggy-ai-card/loggy-card.js
+#    Type: JavaScript Module
+#
+# Or add this to configuration.yaml:
+
+lovelace:
+  mode: storage
+  resources:
+    - url: /local/community/loggy-ai-card/loggy-card.js
+      type: module
+
+# ============================================================================
+# NOTES:
+# ============================================================================
+# - You only need ONE of the above options, not all of them
+# - Choose the option that matches your current dashboard setup
+# - After adding to configuration.yaml, restart Home Assistant
+# - The custom card (loggy-card.js) is required for the main Loggy AI card
+# - If the custom card doesn't load, check browser console (F12) for errors
