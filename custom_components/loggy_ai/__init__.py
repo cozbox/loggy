@@ -23,7 +23,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 DASHBOARD_CONFIG = {
     "title": "Loggy AI",
     "icon": "mdi:robot",
-    "path": "loggy-ai",
+    "path": "loggy_ai",
     "views": [
         {
             "title": "Log Analysis",

@@ -29,38 +29,9 @@ from .const import (
     DAYS_OF_WEEK,
     LOG_PATHS,
 )
+from .utils import get_default_log_path
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def find_log_file() -> str:
-    """Auto-detect Home Assistant log file location.
-    
-    Scans common log file locations and returns the first readable file found.
-    Returns DEFAULT_LOG_PATH if no log file is found.
-    """
-    _LOGGER.debug("Auto-detecting Home Assistant log file location...")
-    
-    for log_path in LOG_PATHS:
-        # Expand user home directory if present
-        expanded_path = os.path.expanduser(log_path)
-        
-        try:
-            if os.path.exists(expanded_path) and os.path.isfile(expanded_path):
-                # Check if file is readable
-                if os.access(expanded_path, os.R_OK):
-                    _LOGGER.info(f"Auto-detected log file at: {expanded_path}")
-                    return expanded_path
-                else:
-                    _LOGGER.debug(f"Log file exists but not readable: {expanded_path}")
-        except Exception as err:
-            _LOGGER.debug(f"Error checking log path {expanded_path}: {err}")
-            continue
-    
-    _LOGGER.warning(
-        f"No log file auto-detected. Using default: {DEFAULT_LOG_PATH}"
-    )
-    return DEFAULT_LOG_PATH
 
 
 class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -102,7 +73,7 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         available_models = PROVIDERS[default_provider]["models"]
         
         # Auto-detect log file path as default
-        default_log_path = find_log_file()
+        default_log_path = get_default_log_path()
 
         data_schema = vol.Schema(
             {
