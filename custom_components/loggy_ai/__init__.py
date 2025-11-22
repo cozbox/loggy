@@ -1,6 +1,8 @@
 """The Loggy AI integration."""
+import json
 import logging
 import os
+import yaml
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -104,21 +106,13 @@ async def _register_services(hass: HomeAssistant, coordinator: LoggyDataUpdateCo
 
 async def _setup_dashboard_and_welcome(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up the dashboard and send a welcome notification."""
-    # Get the dashboard YAML path - it's located at the repository root
-    # The integration is at custom_components/loggy_ai, so go up 2 levels
-    dashboard_yaml_path = os.path.join(
-        hass.config.config_dir,
-        "custom_components",
-        "loggy_ai_dashboard.yaml"
-    )
-    
-    # If not found there, check the repository root (development/HACS installation)
-    if not os.path.exists(dashboard_yaml_path):
-        integration_dir = os.path.dirname(__file__)
-        dashboard_yaml_path = os.path.join(
-            os.path.dirname(os.path.dirname(integration_dir)),
-            "loggy_ai_dashboard.yaml"
-        )
+    # Dashboard YAML is located at the repository root, which could be:
+    # - For HACS: /config/custom_components/loggy/ (repository root)
+    # - For manual install: /config/custom_components/loggy/
+    # We look in the parent directory of the custom_components/loggy_ai integration folder
+    integration_dir = os.path.dirname(__file__)  # .../custom_components/loggy_ai
+    repo_root = os.path.dirname(os.path.dirname(integration_dir))  # .../
+    dashboard_yaml_path = os.path.join(repo_root, "loggy_ai_dashboard.yaml")
     
     try:
         # Create the lovelace dashboard
@@ -134,8 +128,6 @@ async def _setup_dashboard_and_welcome(hass: HomeAssistant, entry: ConfigEntry) 
 
 async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> None:
     """Create a Lovelace dashboard automatically."""
-    import yaml
-    
     try:
         # Check if dashboard file exists
         if not os.path.exists(yaml_path):
@@ -171,7 +163,6 @@ async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> Non
         }
         
         def write_dashboard():
-            import json
             with open(dashboard_storage_path, "w") as f:
                 json.dump(dashboard_data, f, indent=2)
         
