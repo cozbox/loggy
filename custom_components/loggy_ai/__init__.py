@@ -1,4 +1,4 @@
-"""The Loggy AI integration."
+"""The Loggy AI integration."""
 import logging
 from datetime import datetime, timedelta
 

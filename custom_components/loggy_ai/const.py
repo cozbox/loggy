@@ -1,4 +1,4 @@
-"""Constants for the Loggy AI integration."
+"""Constants for the Loggy AI integration."""
 from datetime import timedelta
 
 DOMAIN = "loggy_ai"
