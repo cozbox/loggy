@@ -189,9 +189,23 @@ Fill out the configuration form:
 
 ## Dashboard Setup
 
-### Quick Setup with Pre-configured Dashboard (Recommended)
+### 🎯 Automatic Setup (Recommended)
 
-Loggy AI includes a ready-to-use dashboard with all features configured:
+After installation, Loggy AI **automatically creates the dashboard for you!**
+
+**What happens automatically:**
+- ✅ Dashboard created in your UI (check sidebar for "Loggy AI")
+- ✅ Dashboard file copied to `config/dashboards/loggy_ai.yaml` (if folder exists)
+- ✅ Log file location auto-detected from common paths
+- ✅ Welcome notification with setup instructions
+
+**No manual setup needed!** Just look for "Loggy AI" in your sidebar after installation.
+
+### 📂 Manual Setup Options
+
+If automatic setup doesn't work or you want to customize, choose the option that matches your setup:
+
+#### Option 1: UI Dashboard (Storage Mode)
 
 1. **Download the dashboard file:**
    - Get `loggy_ai_dashboard.yaml` from the [GitHub repository](https://github.com/cozbox/loggy)
@@ -213,6 +227,46 @@ Loggy AI includes a ready-to-use dashboard with all features configured:
    - Copy and paste the entire contents of `loggy_ai_dashboard.yaml`
    - Click **Save**
 
+#### Option 2: Dashboards Folder
+
+1. **Copy the file:**
+   - Copy `dashboards/loggy_ai.yaml` from the repository to your `config/dashboards/` folder
+
+2. **Add to configuration.yaml:**
+   ```yaml
+   lovelace:
+     dashboards:
+       loggy-ai:
+         mode: yaml
+         title: Loggy AI
+         icon: mdi:robot
+         show_in_sidebar: true
+         filename: dashboards/loggy_ai.yaml
+   ```
+
+3. **Restart Home Assistant**
+
+#### Option 3: Lovelace YAML Mode (Legacy)
+
+1. **Copy the view:**
+   - Copy the view content from `ui-lovelace-loggy-example.yaml`
+
+2. **Add to ui-lovelace.yaml:**
+   - Paste the view into your existing `ui-lovelace.yaml` file
+
+3. **Add the custom card resource:**
+   ```yaml
+   lovelace:
+     mode: yaml
+     resources:
+       - url: /local/community/loggy-ai-card/loggy-card.js
+         type: module
+   ```
+
+4. **Restart Home Assistant**
+
+📚 **See `configuration.yaml.example` in the repository for complete configuration examples for all options.**
+
 The pre-configured dashboard includes:
 - 📊 Main Loggy AI card with all statistics
 - 🎯 Quick action button
@@ -224,7 +278,7 @@ The pre-configured dashboard includes:
 
 If you prefer to add just the card to an existing dashboard:
 
-### Step 1: Add the Custom Card Resource
+#### Step 1: Add the Custom Card Resource
 
 1. Go to **Settings** → **Dashboards**
 2. Click the **three dots** (⋮) in the top right
@@ -235,7 +289,7 @@ If you prefer to add just the card to an existing dashboard:
    - **Resource type**: `JavaScript Module`
 6. Click **Create**
 
-### Step 2: Add the Card to Your Dashboard
+#### Step 2: Add the Card to Your Dashboard
 
 1. Open the dashboard where you want to add the card
 2. Click **Edit Dashboard** (pencil icon)
@@ -323,10 +377,29 @@ Trigger your first analysis to test the setup:
 - Restart Home Assistant again
 
 ### Analysis Fails
-- Check that log file path is correct
-- Verify log file is readable
+- **Log file not found**: Loggy AI automatically checks multiple common locations. If still failing, manually check your log file path in Settings → Devices & Services → Loggy AI → Configure
+- **Common log locations**:
+  - Docker/HA OS/Supervised: `/config/home-assistant.log`
+  - Core: `~/.homeassistant/home-assistant.log`
+  - Alternative: `/usr/share/hassio/homeassistant/home-assistant.log`
+- Verify log file is readable (check file permissions)
 - Check API provider status
 - Review Home Assistant logs for specific errors
+
+### Dashboard Not Appearing
+- **Storage mode**: Dashboard should auto-create - check your sidebar for "Loggy AI"
+- **Dashboards folder**: Verify file copied to `config/dashboards/loggy_ai.yaml` and configuration.yaml is set up
+- **YAML mode**: Follow manual setup in the Dashboard Setup section above
+- Check the welcome notification for specific instructions for your setup
+
+### Log File Auto-Detection Issues
+- Integration will automatically try these paths in order:
+  1. Your configured path
+  2. `/config/home-assistant.log`
+  3. `~/.homeassistant/home-assistant.log`
+  4. `/usr/share/hassio/homeassistant/home-assistant.log`
+- If none found, check Home Assistant logs for the full error message
+- You can manually specify the correct path in integration configuration
 
 ## Getting Help
 
