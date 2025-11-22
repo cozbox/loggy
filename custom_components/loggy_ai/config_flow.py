@@ -1,5 +1,6 @@
 """Config flow for Loggy AI integration."""
 import logging
+import os
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -41,24 +42,29 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            # Validate API key
-            provider = user_input[CONF_PROVIDER]
-            api_key = user_input[CONF_API_KEY]
-            model = user_input.get(CONF_MODEL, PROVIDERS[provider]["default_model"])
-
-            is_valid, error_msg = await self._validate_api_key(provider, api_key, model)
-
-            if is_valid:
-                # Create unique ID based on provider and partial API key
-                await self.async_set_unique_id(f"{provider}_{api_key[-8:]}")
-                self._abort_if_unique_id_configured()
-
-                return self.async_create_entry(
-                    title=f"Loggy AI ({PROVIDERS[provider]['name']})",
-                    data=user_input,
-                )
+            # Validate log file path first
+            log_path = user_input.get(CONF_LOG_PATH, DEFAULT_LOG_PATH)
+            if not await self._validate_log_path(log_path):
+                errors["base"] = "log_file_not_found"
             else:
-                errors["base"] = error_msg or "invalid_api_key"
+                # Validate API key
+                provider = user_input[CONF_PROVIDER]
+                api_key = user_input[CONF_API_KEY]
+                model = user_input.get(CONF_MODEL, PROVIDERS[provider]["default_model"])
+
+                is_valid, error_msg = await self._validate_api_key(provider, api_key, model)
+
+                if is_valid:
+                    # Create unique ID based on provider and partial API key
+                    await self.async_set_unique_id(f"{provider}_{api_key[-8:]}")
+                    self._abort_if_unique_id_configured()
+
+                    return self.async_create_entry(
+                        title=f"Loggy AI ({PROVIDERS[provider]['name']})",
+                        data=user_input,
+                    )
+                else:
+                    errors["base"] = error_msg or "invalid_api_key"
 
         # Get available models for default provider
         default_provider = DEFAULT_PROVIDER
@@ -96,6 +102,27 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "docs_url": "https://github.com/cozbox/loggy"
             },
         )
+
+    async def _validate_log_path(self, log_path: str) -> bool:
+        """Validate that the log file exists."""
+        try:
+            # Check if file exists
+            def check_file():
+                return os.path.exists(log_path) and os.path.isfile(log_path)
+            
+            exists = await self.hass.async_add_executor_job(check_file)
+            
+            if not exists:
+                _LOGGER.warning(
+                    f"Log file not found at: {log_path}. "
+                    f"Common locations: /config/home-assistant.log, "
+                    f"~/.homeassistant/home-assistant.log"
+                )
+            
+            return exists
+        except Exception as err:
+            _LOGGER.error(f"Error validating log path: {err}")
+            return False
 
     async def _validate_api_key(
         self, provider: str, api_key: str, model: str

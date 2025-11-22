@@ -23,6 +23,7 @@ from .const import (
     DEFAULT_LOG_PATH,
     DEFAULT_THINKING_LEVEL,
     PROVIDERS,
+    LOG_FILE_NOT_FOUND_MSG,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -106,8 +107,9 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
 
         try:
             if not os.path.exists(log_path):
-                _LOGGER.warning(f"Log file not found: {log_path}")
-                return "", 0, 0
+                error_msg = LOG_FILE_NOT_FOUND_MSG.format(path=log_path)
+                _LOGGER.error(error_msg)
+                raise UpdateFailed(error_msg)
 
             with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
                 log_content = f.read()

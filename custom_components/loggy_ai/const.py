@@ -51,3 +51,14 @@ ATTR_PROVIDER = "provider"
 ATTR_MODEL = "model"
 
 SERVICE_ANALYZE_LOGS = "analyze_logs"
+
+# Error messages
+LOG_FILE_NOT_FOUND_MSG = (
+    "Log file not found at: {path}\n\n"
+    "Common locations:\n"
+    "• Docker/HA OS: /config/home-assistant.log\n"
+    "• Supervised: /config/home-assistant.log\n"
+    "• Core: ~/.homeassistant/home-assistant.log\n\n"
+    "Please check Settings → Devices & Services → Loggy AI → Configure "
+    "to update the log file path."
+)
