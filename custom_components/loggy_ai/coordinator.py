@@ -106,8 +106,17 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
 
         try:
             if not os.path.exists(log_path):
-                _LOGGER.warning(f"Log file not found: {log_path}")
-                return "", 0, 0
+                error_msg = (
+                    f"Log file not found at: {log_path}\n\n"
+                    f"Common locations:\n"
+                    f"• Docker/HA OS: /config/home-assistant.log\n"
+                    f"• Supervised: /config/home-assistant.log\n"
+                    f"• Core: ~/.homeassistant/home-assistant.log\n\n"
+                    f"Please check Settings → Devices & Services → Loggy AI → Configure "
+                    f"to update the log file path."
+                )
+                _LOGGER.error(error_msg)
+                raise UpdateFailed(error_msg)
 
             with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
                 log_content = f.read()

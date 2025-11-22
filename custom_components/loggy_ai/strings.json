@@ -16,6 +16,14 @@
           "schedule_time": "Schedule Time"
         }
       }
+    },
+    "error": {
+      "invalid_api_key": "Invalid API key. Please check your API key and try again.",
+      "connection_error": "Unable to connect to the AI provider. Please check your internet connection.",
+      "validation_error": "An error occurred while validating your credentials.",
+      "unknown_provider": "Unknown AI provider selected.",
+      "invalid_response": "Received an invalid response from the AI provider.",
+      "log_file_not_found": "Log file not found at the specified path. Common locations:\n• Docker/HA OS: /config/home-assistant.log\n• Supervised: /config/home-assistant.log\n• Core: ~/.homeassistant/home-assistant.log\n\nPlease verify the path exists and is accessible."
     }
   }
 }

@@ -22,7 +22,8 @@
       "connection_error": "Unable to connect to AI provider. Check your internet connection.",
       "unknown_provider": "Unknown AI provider selected.",
       "validation_error": "Failed to validate API key.",
-      "invalid_response": "Received invalid response from AI provider."
+      "invalid_response": "Received invalid response from AI provider.",
+      "log_file_not_found": "Log file not found at the specified path. Common locations:\n• Docker/HA OS: /config/home-assistant.log\n• Supervised: /config/home-assistant.log\n• Core: ~/.homeassistant/home-assistant.log\n\nPlease verify the path exists and is accessible."
     },
     "abort": {
       "already_configured": "This API key is already configured."

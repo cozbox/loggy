@@ -34,6 +34,29 @@ class LoggyCard extends HTMLElement {
           font-size: 24px;
           font-weight: 500;
         }
+        .history-ticker {
+          background: var(--primary-background-color);
+          border-radius: 8px;
+          padding: 8px 12px;
+          margin-bottom: 16px;
+          font-size: 12px;
+          color: var(--secondary-text-color);
+          border-left: 3px solid var(--primary-color);
+          overflow: hidden;
+        }
+        .ticker-content {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .ticker-label {
+          font-weight: 600;
+          color: var(--primary-text-color);
+        }
+        .ticker-item {
+          margin-right: 16px;
+          white-space: nowrap;
+        }
         .stats-container {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -152,6 +175,8 @@ class LoggyCard extends HTMLElement {
     const analysisText = entity.attributes.analysis_text || entity.state || 'No analysis available';
     const lastRun = entity.attributes.last_run;
 
+    const provider = entity.attributes.provider || 'AI';
+    const model = entity.attributes.model || 'Unknown';
     let lastRunText = '';
     if (lastRun) {
       const lastRunDate = new Date(lastRun);
@@ -160,6 +185,16 @@ class LoggyCard extends HTMLElement {
 
     const content = `
       ${lastRunText ? `<div class="last-run">${lastRunText}</div>` : ''}
+            <div class="history-ticker">
+        <div class="ticker-content">
+          <span class="ticker-label">📊 Status:</span>
+          <span class="ticker-item">Provider: ${provider}</span>
+          <span class="ticker-item">Model: ${model}</span>
+          <span class="ticker-item">🔴 Errors: ${errors}</span>
+          <span class="ticker-item">⚠️ Warnings: ${warnings}</span>
+          <span class="ticker-item">🆕 New: ${newIssues}</span>
+        </div>
+      </div>
       <div class="stats-container">
         <div class="stat-box errors">
           <div class="stat-value">${errors}</div>
