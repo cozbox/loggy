@@ -27,9 +27,40 @@ from .const import (
     PROVIDERS,
     THINKING_LEVELS,
     DAYS_OF_WEEK,
+    LOG_PATHS,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def find_log_file() -> str:
+    """Auto-detect Home Assistant log file location.
+    
+    Scans common log file locations and returns the first readable file found.
+    Returns DEFAULT_LOG_PATH if no log file is found.
+    """
+    _LOGGER.debug("Auto-detecting Home Assistant log file location...")
+    
+    for log_path in LOG_PATHS:
+        # Expand user home directory if present
+        expanded_path = os.path.expanduser(log_path)
+        
+        try:
+            if os.path.exists(expanded_path) and os.path.isfile(expanded_path):
+                # Check if file is readable
+                if os.access(expanded_path, os.R_OK):
+                    _LOGGER.info(f"Auto-detected log file at: {expanded_path}")
+                    return expanded_path
+                else:
+                    _LOGGER.debug(f"Log file exists but not readable: {expanded_path}")
+        except Exception as err:
+            _LOGGER.debug(f"Error checking log path {expanded_path}: {err}")
+            continue
+    
+    _LOGGER.warning(
+        f"No log file auto-detected. Using default: {DEFAULT_LOG_PATH}"
+    )
+    return DEFAULT_LOG_PATH
 
 
 class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -69,6 +100,9 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Get available models for default provider
         default_provider = DEFAULT_PROVIDER
         available_models = PROVIDERS[default_provider]["models"]
+        
+        # Auto-detect log file path as default
+        default_log_path = find_log_file()
 
         data_schema = vol.Schema(
             {
@@ -82,7 +116,7 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_DAYS_TO_REVIEW, default=DEFAULT_DAYS_TO_REVIEW
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=90)),
-                vol.Optional(CONF_LOG_PATH, default=DEFAULT_LOG_PATH): str,
+                vol.Optional(CONF_LOG_PATH, default=default_log_path): str,
                 vol.Optional(
                     CONF_THINKING_LEVEL, default=DEFAULT_THINKING_LEVEL
                 ): vol.In(THINKING_LEVELS),
@@ -113,10 +147,10 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             exists = await self.hass.async_add_executor_job(check_file)
             
             if not exists:
+                checked_paths = "\n  • ".join(LOG_PATHS)
                 _LOGGER.warning(
-                    f"Log file not found at: {log_path}. "
-                    f"Common locations: /config/home-assistant.log, "
-                    f"~/.homeassistant/home-assistant.log"
+                    f"Log file not found at: {log_path}\n"
+                    f"Common locations checked:\n  • {checked_paths}"
                 )
             
             return exists

@@ -2,7 +2,6 @@
 import json
 import logging
 import os
-import yaml
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -19,6 +18,121 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "button"]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+# Embedded dashboard configuration
+DASHBOARD_CONFIG = {
+    "title": "Loggy AI",
+    "icon": "mdi:robot",
+    "path": "loggy-ai",
+    "views": [
+        {
+            "title": "Log Analysis",
+            "icon": "mdi:text-box-search",
+            "badges": [],
+            "cards": [
+                # Main Loggy AI Card
+                {
+                    "type": "custom:loggy-card",
+                    "entity": "sensor.loggy_ai_log_analyzer_analysis"
+                },
+                # Quick Actions
+                {
+                    "type": "entities",
+                    "title": "Quick Actions",
+                    "show_header_toggle": False,
+                    "entities": [
+                        {
+                            "entity": "button.loggy_ai_log_analyzer_analyze_now",
+                            "name": "Analyze Logs Now",
+                            "icon": "mdi:play-circle"
+                        }
+                    ]
+                },
+                # Statistics Grid
+                {
+                    "type": "grid",
+                    "columns": 3,
+                    "square": False,
+                    "cards": [
+                        {
+                            "type": "statistic",
+                            "entity": "sensor.loggy_ai_log_analyzer_error_count",
+                            "name": "Errors",
+                            "icon": "mdi:alert-circle",
+                            "period": {
+                                "calendar": {
+                                    "period": "day"
+                                }
+                            }
+                        },
+                        {
+                            "type": "statistic",
+                            "entity": "sensor.loggy_ai_log_analyzer_warning_count",
+                            "name": "Warnings",
+                            "icon": "mdi:alert",
+                            "period": {
+                                "calendar": {
+                                    "period": "day"
+                                }
+                            }
+                        },
+                        {
+                            "type": "statistic",
+                            "entity": "sensor.loggy_ai_log_analyzer_new_issues_count",
+                            "name": "New Issues",
+                            "icon": "mdi:new-box",
+                            "period": {
+                                "calendar": {
+                                    "period": "day"
+                                }
+                            }
+                        }
+                    ]
+                },
+                # History Graph
+                {
+                    "type": "history-graph",
+                    "title": "Error & Warning Trends",
+                    "hours_to_show": 168,
+                    "entities": [
+                        {
+                            "entity": "sensor.loggy_ai_log_analyzer_error_count",
+                            "name": "Errors"
+                        },
+                        {
+                            "entity": "sensor.loggy_ai_log_analyzer_warning_count",
+                            "name": "Warnings"
+                        },
+                        {
+                            "entity": "sensor.loggy_ai_log_analyzer_new_issues_count",
+                            "name": "New Issues"
+                        }
+                    ]
+                },
+                # Full Analysis Text
+                {
+                    "type": "markdown",
+                    "title": "Latest Analysis Details",
+                    "content": (
+                        "{% set last_run = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'last_run') %}\n"
+                        "{% set provider = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'provider') %}\n"
+                        "{% set model = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'model') %}\n"
+                        "{% set analysis = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'analysis_text') %}\n"
+                        "{% if states('sensor.loggy_ai_log_analyzer_analysis') != 'unknown' %}\n"
+                        "**Last Run:** {{ last_run | default('Never') }}\n\n"
+                        "**Provider:** {{ provider | default('N/A') }}\n"
+                        "**Model:** {{ model | default('N/A') }}\n\n"
+                        "---\n\n"
+                        "{{ analysis | default('No analysis available yet. Click \"Analyze Now\" to run your first analysis.') }}\n"
+                        "{% else %}\n"
+                        "Integration not found. Please ensure Loggy AI is installed and configured.\n"
+                        "{% endif %}"
+                    )
+                }
+            ]
+        }
+    ]
+}
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -106,18 +220,15 @@ async def _register_services(hass: HomeAssistant, coordinator: LoggyDataUpdateCo
 
 async def _setup_dashboard_and_welcome(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up the dashboard and send a welcome notification."""
-    # Dashboard YAML is located at the repository root, which could be:
-    # - For HACS: /config/custom_components/loggy/ (repository root)
-    # - For manual install: /config/custom_components/loggy/
-    # We look in the parent directory of the custom_components/loggy_ai integration folder
-    integration_dir = os.path.dirname(__file__)  # .../custom_components/loggy_ai
-    repo_root = os.path.dirname(os.path.dirname(integration_dir))  # .../
-    dashboard_yaml_path = os.path.join(repo_root, "loggy_ai_dashboard.yaml")
-    
     try:
-        # Create the lovelace dashboard
-        await _create_lovelace_dashboard(hass, dashboard_yaml_path)
+        # Create the lovelace dashboard from embedded configuration
+        await _create_lovelace_dashboard(hass)
+        
+        # Register the dashboard as a frontend panel for sidebar visibility
+        await _register_frontend_panel(hass)
+        
         dashboard_created = True
+        _LOGGER.info("Dashboard setup completed successfully")
     except Exception as err:
         _LOGGER.warning(f"Could not auto-create dashboard: {err}")
         dashboard_created = False
@@ -126,24 +237,13 @@ async def _setup_dashboard_and_welcome(hass: HomeAssistant, entry: ConfigEntry) 
     await _send_welcome_notification(hass, entry, dashboard_created)
 
 
-async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> None:
-    """Create a Lovelace dashboard automatically."""
+async def _create_lovelace_dashboard(hass: HomeAssistant) -> None:
+    """Create a Lovelace dashboard automatically from embedded configuration."""
     try:
-        # Check if dashboard file exists
-        if not os.path.exists(yaml_path):
-            _LOGGER.warning(f"Dashboard template not found at: {yaml_path}")
-            return
+        # Use embedded dashboard configuration
+        dashboard_config = DASHBOARD_CONFIG
         
-        # Read the dashboard YAML
-        def read_yaml():
-            with open(yaml_path, "r") as f:
-                return yaml.safe_load(f)
-        
-        dashboard_config = await hass.async_add_executor_job(read_yaml)
-        
-        if not dashboard_config:
-            _LOGGER.warning("Dashboard YAML is empty")
-            return
+        _LOGGER.debug("Creating dashboard from embedded configuration")
         
         # Store dashboard configuration
         storage_path = hass.config.path(".storage")
@@ -168,7 +268,7 @@ async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> Non
         
         await hass.async_add_executor_job(write_dashboard)
         
-        _LOGGER.info("Loggy AI dashboard created successfully")
+        _LOGGER.info("Loggy AI dashboard created successfully from embedded config")
         
         # Reload lovelace to pick up the new dashboard
         try:
@@ -180,6 +280,24 @@ async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> Non
             
     except Exception as err:
         _LOGGER.error(f"Failed to create dashboard: {err}")
+        raise
+
+
+async def _register_frontend_panel(hass: HomeAssistant) -> None:
+    """Register Loggy AI dashboard as a frontend panel for sidebar visibility."""
+    try:
+        # Register the panel using the lovelace dashboard
+        hass.components.frontend.async_register_built_in_panel(
+            "lovelace",
+            "Loggy AI",
+            "mdi:robot",
+            "loggy_ai",
+            {"mode": "storage"},
+            require_admin=False,
+        )
+        _LOGGER.info("Loggy AI panel registered in sidebar")
+    except Exception as err:
+        _LOGGER.error(f"Failed to register frontend panel: {err}")
         raise
 
 
