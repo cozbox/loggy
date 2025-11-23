@@ -2,8 +2,6 @@
 import json
 import logging
 import os
-import shutil
-import yaml
 from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -20,6 +18,125 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["sensor", "button"]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+# Embedded dashboard configuration
+DASHBOARD_CONFIG = {
+    "title": "Loggy AI",
+    "icon": "mdi:robot",
+    "path": "loggy-ai",
+    "views": [
+        {
+            "title": "Log Analysis",
+            "icon": "mdi:text-box-search",
+            "badges": [],
+            "cards": [
+                # Main Loggy AI Card
+                {
+                    "type": "custom:loggy-card",
+                    "entity": "sensor.loggy_ai_log_analyzer_analysis"
+                },
+                # Entity cards for quick access
+                {
+                    "type": "entities",
+                    "title": "Quick Actions",
+                    "show_header_toggle": False,
+                    "entities": [
+                        {
+                            "entity": "button.loggy_ai_log_analyzer_analyze_now",
+                            "name": "Analyze Logs Now",
+                            "icon": "mdi:play-circle"
+                        }
+                    ]
+                },
+                # Statistics Grid
+                {
+                    "type": "grid",
+                    "columns": 3,
+                    "square": False,
+                    "cards": [
+                        {
+                            "type": "statistic",
+                            "entity": "sensor.loggy_ai_log_analyzer_error_count",
+                            "name": "Errors",
+                            "icon": "mdi:alert-circle",
+                            "period": {
+                                "calendar": {
+                                    "period": "day"
+                                }
+                            }
+                        },
+                        {
+                            "type": "statistic",
+                            "entity": "sensor.loggy_ai_log_analyzer_warning_count",
+                            "name": "Warnings",
+                            "icon": "mdi:alert",
+                            "period": {
+                                "calendar": {
+                                    "period": "day"
+                                }
+                            }
+                        },
+                        {
+                            "type": "statistic",
+                            "entity": "sensor.loggy_ai_log_analyzer_new_issues_count",
+                            "name": "New Issues",
+                            "icon": "mdi:new-box",
+                            "period": {
+                                "calendar": {
+                                    "period": "day"
+                                }
+                            }
+                        }
+                    ]
+                },
+                # History Graph
+                {
+                    "type": "history-graph",
+                    "title": "Error & Warning Trends",
+                    "hours_to_show": 168,
+                    "entities": [
+                        {
+                            "entity": "sensor.loggy_ai_log_analyzer_error_count",
+                            "name": "Errors"
+                        },
+                        {
+                            "entity": "sensor.loggy_ai_log_analyzer_warning_count",
+                            "name": "Warnings"
+                        },
+                        {
+                            "entity": "sensor.loggy_ai_log_analyzer_new_issues_count",
+                            "name": "New Issues"
+                        }
+                    ]
+                },
+                # Full Analysis Text
+                {
+                    "type": "markdown",
+                    "title": "Latest Analysis Details",
+                    "content": (
+                        "{% set last_run = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'last_run') %}\n"
+                        "{% set provider = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'provider') %}\n"
+                        "{% set model = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'model') %}\n"
+                        "{% set analysis = state_attr('sensor.loggy_ai_log_analyzer_analysis', 'analysis_text') %}\n"
+                        "{% if states('sensor.loggy_ai_log_analyzer_analysis') != 'unknown' %}\n"
+                        "**Last Run:** {{ last_run | default('Never') }}\n"
+                        "\n"
+                        "**Provider:** {{ provider | default('N/A') }}\n"
+                        "**Model:** {{ model | default('N/A') }}\n"
+                        "\n"
+                        "---\n"
+                        "\n"
+                        "{{ analysis | default('No analysis available yet. Click \"Analyze Now\" to run your first analysis.') }}\n"
+                        "{% else %}\n"
+                        "Integration not found. Please ensure Loggy AI is installed and configured.\n"
+                        "{% endif %}"
+                    )
+                }
+            ]
+        }
+    ]
+}
+
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -107,76 +224,51 @@ async def _register_services(hass: HomeAssistant, coordinator: LoggyDataUpdateCo
 
 async def _setup_dashboard_and_welcome(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up the dashboard and send a welcome notification."""
-    # Dashboard YAML is located at the repository root, which could be:
-    # - For HACS: /config/custom_components/loggy/ (repository root)
-    # - For manual install: /config/custom_components/loggy/
-    # We look in the parent directory of the custom_components/loggy_ai integration folder
-    integration_dir = os.path.dirname(__file__)  # .../custom_components/loggy_ai
-    repo_root = os.path.dirname(os.path.dirname(integration_dir))  # .../
+    dashboard_created = False
     
-    dashboard_methods = []
-    
-    # Try multiple dashboard creation methods
-    # Method 1: Create in storage (UI dashboards)
+    # Try to create dashboard from embedded config
     try:
-        dashboard_yaml_path = os.path.join(repo_root, "loggy_ai_dashboard.yaml")
-        await _create_lovelace_dashboard(hass, dashboard_yaml_path)
-        dashboard_methods.append("storage")
+        await _create_lovelace_dashboard(hass)
+        dashboard_created = True
         _LOGGER.info("Created dashboard in storage (accessible from UI)")
     except Exception as err:
         _LOGGER.warning(f"Could not auto-create dashboard in storage: {err}")
     
-    # Method 2: Copy to dashboards folder if it exists
+    # Register frontend panel for sidebar visibility
     try:
-        dashboards_source = os.path.join(repo_root, "dashboards", "loggy_ai.yaml")
-        dashboards_folder = hass.config.path("dashboards")
-        if os.path.exists(dashboards_source):
-            await _copy_to_dashboards_folder(hass, dashboards_source, dashboards_folder)
-            dashboard_methods.append("dashboards")
-            _LOGGER.info("Copied dashboard to dashboards folder")
+        await _register_frontend_panel(hass)
+        _LOGGER.info("Registered Loggy AI panel in sidebar")
     except Exception as err:
-        _LOGGER.debug(f"Could not copy to dashboards folder: {err}")
+        _LOGGER.warning(f"Could not register frontend panel: {err}")
     
     # Send welcome notification
-    await _send_welcome_notification(hass, entry, dashboard_methods)
+    await _send_welcome_notification(hass, entry, dashboard_created)
 
 
-async def _copy_to_dashboards_folder(hass: HomeAssistant, source_path: str, dest_folder: str) -> None:
-    """Copy dashboard YAML to the dashboards folder."""
-    def copy_file():
-        os.makedirs(dest_folder, exist_ok=True)
-        dest_path = os.path.join(dest_folder, "loggy_ai.yaml")
-        
-        # Only copy if it doesn't exist or is outdated
-        if not os.path.exists(dest_path):
-            shutil.copy2(source_path, dest_path)
-            return True
-        return False
-    
-    copied = await hass.async_add_executor_job(copy_file)
-    if copied:
-        _LOGGER.info("Dashboard file copied to dashboards folder")
-
-
-
-async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> None:
-    """Create a Lovelace dashboard automatically."""
+async def _register_frontend_panel(hass: HomeAssistant) -> None:
+    """Register Loggy AI dashboard as a frontend panel for sidebar visibility."""
     try:
-        # Check if dashboard file exists
-        if not os.path.exists(yaml_path):
-            _LOGGER.warning(f"Dashboard template not found at: {yaml_path}")
-            return
-        
-        # Read the dashboard YAML
-        def read_yaml():
-            with open(yaml_path, "r") as f:
-                return yaml.safe_load(f)
-        
-        dashboard_config = await hass.async_add_executor_job(read_yaml)
-        
-        if not dashboard_config:
-            _LOGGER.warning("Dashboard YAML is empty")
-            return
+        # Register the panel using the lovelace dashboard
+        # Note: panel url_path uses underscore while dashboard path uses hyphen
+        hass.components.frontend.async_register_built_in_panel(
+            "lovelace",
+            "Loggy AI",
+            "mdi:robot",
+            "loggy-ai",  # URL path matching dashboard path
+            {"mode": "storage"},
+            require_admin=False,
+        )
+        _LOGGER.info("Loggy AI panel registered in sidebar")
+    except Exception as err:
+        _LOGGER.error(f"Failed to register frontend panel: {err}")
+        raise
+
+
+async def _create_lovelace_dashboard(hass: HomeAssistant) -> None:
+    """Create a Lovelace dashboard automatically from embedded config."""
+    try:
+        # Use embedded dashboard configuration
+        dashboard_config = DASHBOARD_CONFIG
         
         # Store dashboard configuration
         storage_path = hass.config.path(".storage")
@@ -217,22 +309,13 @@ async def _create_lovelace_dashboard(hass: HomeAssistant, yaml_path: str) -> Non
 
 
 async def _send_welcome_notification(
-    hass: HomeAssistant, entry: ConfigEntry, dashboard_methods: list
+    hass: HomeAssistant, entry: ConfigEntry, dashboard_created: bool
 ) -> None:
     """Send a welcome notification with setup instructions."""
     provider_name = entry.data.get("provider", "AI").title()
     
-    if dashboard_methods:
-        # Dashboard was created in at least one way
-        setup_info = []
-        if "storage" in dashboard_methods:
-            setup_info.append("📊 **Auto-created Dashboard** - Check your sidebar for \"Loggy AI\"!")
-        if "dashboards" in dashboard_methods:
-            setup_info.append("📁 Dashboard file copied to `config/dashboards/loggy_ai.yaml`")
-        
-        # Format as markdown list with proper prefixes
-        setup_text = "- " + "\n- ".join(setup_info)
-        
+    if dashboard_created:
+        # Dashboard was created successfully
         message = f"""
 ## 🎉 Welcome to Loggy AI!
 
@@ -240,7 +323,7 @@ Your AI-powered log analyzer is now set up with **{provider_name}**.
 
 ### ✅ What's Ready:
 - 🤖 AI-powered log analysis with auto-detect log file path
-{setup_text}
+- 📊 **Dashboard available in sidebar** - Look for "Loggy AI" in your Home Assistant sidebar!
 - 🔔 Automated issue tracking
 - 📈 Error and warning monitoring
 
@@ -255,12 +338,6 @@ Your AI-powered log analyzer is now set up with **{provider_name}**.
 - `sensor.loggy_ai_log_analyzer_warning_count`
 - `sensor.loggy_ai_log_analyzer_new_issues_count`
 - `sensor.loggy_ai_log_analyzer_analysis`
-
-### 🎨 Alternative Dashboard Setup Options:
-If you use YAML mode or custom dashboard configurations:
-1. **Dashboards folder**: Reference `dashboards/loggy_ai.yaml` in your config
-2. **Lovelace YAML**: Copy view from `ui-lovelace-loggy-example.yaml`
-3. **Configuration.yaml**: See `configuration.yaml.example` for all options
 
 ### 📚 Documentation:
 [View full documentation](https://github.com/cozbox/loggy)
@@ -280,8 +357,8 @@ Your AI-powered log analyzer is now set up with **{provider_name}**.
 - 🔔 Automated issue tracking
 - 📈 Error and warning monitoring
 
-### 📊 Dashboard Setup Options:
-Multiple dashboard files are available to fit your setup:
+### 📊 Dashboard Setup:
+The dashboard could not be auto-created. You can manually set it up:
 
 **Option 1: UI Dashboard (Recommended)**
 1. Go to **Settings** → **Dashboards** → **+ Add Dashboard**
@@ -290,12 +367,7 @@ Multiple dashboard files are available to fit your setup:
 4. Copy contents from `loggy_ai_dashboard.yaml`
 5. Save and enjoy!
 
-**Option 2: Dashboards Folder**
-1. Copy `dashboards/loggy_ai.yaml` to your `config/dashboards/` folder
-2. Add reference in `configuration.yaml` (see `configuration.yaml.example`)
-3. Restart Home Assistant
-
-**Option 3: Lovelace YAML Mode**
+**Option 2: Lovelace YAML Mode**
 1. Copy view from `ui-lovelace-loggy-example.yaml`
 2. Add to your `ui-lovelace.yaml` file
 3. Restart Home Assistant

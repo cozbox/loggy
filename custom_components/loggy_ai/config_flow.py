@@ -27,7 +27,9 @@ from .const import (
     PROVIDERS,
     THINKING_LEVELS,
     DAYS_OF_WEEK,
+    LOG_PATHS,
 )
+from .utils import get_default_log_path
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,6 +72,9 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         default_provider = DEFAULT_PROVIDER
         available_models = PROVIDERS[default_provider]["models"]
 
+        # Auto-detect log file path as default
+        default_log_path = get_default_log_path()
+
         data_schema = vol.Schema(
             {
                 vol.Required(CONF_PROVIDER, default=default_provider): vol.In(
@@ -82,7 +87,7 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_DAYS_TO_REVIEW, default=DEFAULT_DAYS_TO_REVIEW
                 ): vol.All(vol.Coerce(int), vol.Range(min=1, max=90)),
-                vol.Optional(CONF_LOG_PATH, default=DEFAULT_LOG_PATH): str,
+                vol.Optional(CONF_LOG_PATH, default=default_log_path): str,
                 vol.Optional(
                     CONF_THINKING_LEVEL, default=DEFAULT_THINKING_LEVEL
                 ): vol.In(THINKING_LEVELS),
@@ -138,10 +143,10 @@ class LoggyAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return True
             else:
                 # No log file found anywhere
+                checked_paths = "\n  • ".join(LOG_PATHS)
                 _LOGGER.warning(
-                    f"Log file not found at: {log_path}. "
-                    f"Also checked: /config/home-assistant.log, "
-                    f"~/.homeassistant/home-assistant.log"
+                    f"Log file not found at: {log_path}\n"
+                    f"Common locations checked:\n  • {checked_paths}"
                 )
                 return False
         except Exception as err:

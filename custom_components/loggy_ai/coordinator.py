@@ -24,7 +24,9 @@ from .const import (
     DEFAULT_THINKING_LEVEL,
     PROVIDERS,
     LOG_FILE_NOT_FOUND_MSG,
+    LOG_PATHS,
 )
+from .utils import find_log_file
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,30 +102,27 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
 
     def _find_log_file(self, configured_path: str) -> str:
         """Find the log file by checking common locations."""
-        # Common log file locations in order of preference
-        common_paths = [
-            configured_path,  # User-configured path first
-            "/config/home-assistant.log",  # Docker/HA OS/Supervised
-            os.path.expanduser("~/.homeassistant/home-assistant.log"),  # Core
-            "/usr/share/hassio/homeassistant/home-assistant.log",  # Alternative supervised
-        ]
+        # Build list with configured path first, then common paths
+        paths_to_check = [configured_path] + [p for p in LOG_PATHS if p != configured_path]
         
         # Remove duplicates while preserving order
-        unique_paths = list(dict.fromkeys(common_paths))
+        unique_paths = list(dict.fromkeys(paths_to_check))
         
         # Try each path
         for path in unique_paths:
-            if os.path.exists(path) and os.path.isfile(path):
-                if path != configured_path:
-                    _LOGGER.info(f"Log file found at {path} (configured path {configured_path} not found)")
-                return path
+            expanded_path = os.path.expanduser(path)
+            if os.path.exists(expanded_path) and os.path.isfile(expanded_path):
+                if expanded_path != os.path.expanduser(configured_path):
+                    _LOGGER.info(f"Log file found at {expanded_path} (configured path {configured_path} not found)")
+                return expanded_path
         
         # If no file found, raise error with all attempted paths
+        checked_paths = "\n  • ".join(LOG_PATHS)
         error_msg = (
-            f"Log file not found at configured path: {configured_path}\n\n"
-            f"Also checked these common locations:\n"
-            + "\n".join([f"  • {p}" for p in unique_paths[1:]])
-            + "\n\nPlease verify the path exists and is accessible."
+            f"Log file not found at: {configured_path}\n\n"
+            f"Common locations checked:\n  • {checked_paths}\n\n"
+            f"Please check Settings → Devices & Services → Loggy AI → Configure "
+            f"to update the log file path."
         )
         _LOGGER.error(error_msg)
         raise UpdateFailed(error_msg)
