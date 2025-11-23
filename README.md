@@ -283,6 +283,16 @@ To change the provider or API key, you must remove and re-add the integration.
 
 ### Custom Log Paths
 
+**🆕 Home Assistant 2025+ Compatibility:**
+Loggy AI now supports **systemd journal** for reading logs! Starting with Home Assistant 2025+, logs are written only to the systemd journal (not to `/config/home-assistant.log`) to reduce disk writes on SBCs with SD cards.
+
+**Smart Log Source Detection:**
+Loggy AI automatically tries multiple log sources in this order:
+1. **Systemd journal** (preferred for HA 2025+)
+2. **Log file** (fallback for older installations)
+
+This ensures 100% compatibility with both new and old Home Assistant installations!
+
 **Loggy AI automatically detects your log file location!** It checks these common paths:
 - `/config/home-assistant.log` (Docker/HA OS/Supervised)
 - `~/.homeassistant/home-assistant.log` (Core)
@@ -295,6 +305,8 @@ If your log file is in a non-standard location, you can specify the full path du
 - Home Assistant OS: `/config/home-assistant.log`
 - Supervised: `/config/home-assistant.log`
 - Core: `~/.homeassistant/home-assistant.log`
+
+**Note:** If you're running Home Assistant 2025+ on an SBC (like Raspberry Pi), your logs will be read from the systemd journal automatically, and the log file path configuration will be ignored.
 
 ### Issue History
 
@@ -318,9 +330,17 @@ The history file is automatically managed and doesn't require manual interventio
 - Ensure you selected the correct provider
 
 ### No Errors/Warnings Found
-- Check that the log file path is correct
-- Verify the log file is readable
+- **Home Assistant 2025+:** Logs are read from systemd journal automatically
+- **Older versions:** Check that the log file path is correct
+- Verify logs are being generated (check Home Assistant logs)
 - Increase "Days to Review" to capture more history
+- Check Home Assistant logs for any Loggy AI errors
+
+### Log File Not Found (Older Installations)
+- **Don't worry!** Loggy AI tries systemd journal first
+- If you see this on HA 2025+, it's expected (journal is being used)
+- For older installations, verify the log file path in Settings → Devices & Services → Loggy AI → Configure
+- Loggy AI auto-detects common log locations
 
 ### Analysis Takes Too Long
 - Use a faster model (e.g., `gpt-4o-mini` or `gemini-2.5-flash-latest`)

@@ -7,6 +7,21 @@ from .const import LOG_PATHS, DEFAULT_LOG_PATH
 
 _LOGGER = logging.getLogger(__name__)
 
+def is_systemd_available() -> bool:
+    """Check if systemd journal is available on this system.
+    
+    Returns:
+        True if systemd journal module is available and accessible, False otherwise.
+    """
+    try:
+        from systemd import journal
+        # Try to access the journal to verify it's actually usable
+        _ = journal.Reader()
+        return True
+    except (ImportError, OSError, RuntimeError) as err:
+        _LOGGER.debug(f"Systemd journal not available: {err}")
+        return False
+
 def find_log_file() -> Optional[str]:
     """Auto-detect Home Assistant log file location.
     
