@@ -11,7 +11,10 @@ def find_log_file() -> Optional[str]:
     """Auto-detect Home Assistant log file location.
     
     Scans common log file locations and returns the first readable file found.
-    Returns None if no log file is found.
+    A file is considered readable if it exists, is a regular file, and has read permissions.
+    
+    Returns:
+        The absolute path to the first readable log file found, or None if no log file is found.
     """
     _LOGGER.debug("Auto-detecting Home Assistant log file location...")
     
@@ -39,7 +42,9 @@ def find_log_file() -> Optional[str]:
 def get_default_log_path() -> str:
     """Get the default log path, attempting auto-detection first.
     
-    Returns the auto-detected path if found, otherwise returns DEFAULT_LOG_PATH.
+    Returns:
+        The auto-detected path if a readable log file is found, 
+        otherwise returns DEFAULT_LOG_PATH as fallback.
     """
     detected_path = find_log_file()
     return detected_path if detected_path else DEFAULT_LOG_PATH

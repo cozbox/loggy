@@ -249,11 +249,12 @@ async def _register_frontend_panel(hass: HomeAssistant) -> None:
     """Register Loggy AI dashboard as a frontend panel for sidebar visibility."""
     try:
         # Register the panel using the lovelace dashboard
+        # Note: panel url_path uses underscore while dashboard path uses hyphen
         hass.components.frontend.async_register_built_in_panel(
             "lovelace",
             "Loggy AI",
             "mdi:robot",
-            "loggy_ai",
+            "loggy-ai",  # URL path matching dashboard path
             {"mode": "storage"},
             require_admin=False,
         )
@@ -268,10 +269,6 @@ async def _create_lovelace_dashboard(hass: HomeAssistant) -> None:
     try:
         # Use embedded dashboard configuration
         dashboard_config = DASHBOARD_CONFIG
-        
-        if not dashboard_config:
-            _LOGGER.warning("Dashboard config is empty")
-            return
         
         # Store dashboard configuration
         storage_path = hass.config.path(".storage")
