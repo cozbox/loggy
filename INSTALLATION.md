@@ -165,6 +165,8 @@ Fill out the configuration form:
 - **Days to Review**: Number of days of logs to analyze (1-90, default: 14)
 
 - **Log File Path**: Path to your Home Assistant log file (default: `/config/home-assistant.log`)
+  - **Note for HA 2025+**: This setting is optional! Loggy AI automatically reads from the systemd journal if available (recommended for SBCs to reduce SD card wear).
+  - The file path is only used as a fallback for older installations or systems without systemd.
 
 - **Thinking Level**: For Gemini 3.0 models only (low/medium/high, default: high)
 
@@ -377,13 +379,13 @@ Trigger your first analysis to test the setup:
 - Restart Home Assistant again
 
 ### Analysis Fails
-- **Log file not found**: Loggy AI automatically checks multiple common locations. If still failing, manually check your log file path in Settings → Devices & Services → Loggy AI → Configure
-- **Common log locations**:
+- **🆕 Home Assistant 2025+**: Loggy AI automatically reads from systemd journal - no log file needed!
+- **Log file not found (older installations)**: If systemd journal isn't available, Loggy AI automatically checks multiple common file locations
+- **Common log locations** (for older installations):
   - Docker/HA OS/Supervised: `/config/home-assistant.log`
   - Core: `~/.homeassistant/home-assistant.log`
   - Alternative: `/usr/share/hassio/homeassistant/home-assistant.log`
-- Verify log file is readable (check file permissions)
-- Check API provider status
+- Verify API provider status and API key
 - Review Home Assistant logs for specific errors
 
 ### Dashboard Not Appearing
@@ -392,14 +394,18 @@ Trigger your first analysis to test the setup:
 - **YAML mode**: Follow manual setup in the Dashboard Setup section above
 - Check the welcome notification for specific instructions for your setup
 
-### Log File Auto-Detection Issues
-- Integration will automatically try these paths in order:
-  1. Your configured path
-  2. `/config/home-assistant.log`
-  3. `~/.homeassistant/home-assistant.log`
-  4. `/usr/share/hassio/homeassistant/home-assistant.log`
-- If none found, check Home Assistant logs for the full error message
-- You can manually specify the correct path in integration configuration
+### Log Source Detection (Advanced)
+Loggy AI uses intelligent log source detection:
+1. **First**: Tries systemd journal (preferred for HA 2025+)
+   - Filters by Home Assistant service identifiers
+   - Reads last N days based on "Days to Review" setting
+2. **Fallback**: Tries log file at configured path
+3. **Auto-detect**: Checks common log file locations
+   - `/config/home-assistant.log`
+   - `~/.homeassistant/home-assistant.log`
+   - `/usr/share/hassio/homeassistant/home-assistant.log`
+
+This ensures 100% compatibility with all Home Assistant versions and installation types!
 
 ## Getting Help
 

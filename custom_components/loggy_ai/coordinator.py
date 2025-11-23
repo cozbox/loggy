@@ -25,8 +25,9 @@ from .const import (
     PROVIDERS,
     LOG_FILE_NOT_FOUND_MSG,
     LOG_PATHS,
+    SYSTEMD_JOURNAL_IDENTIFIERS,
 )
-from .utils import find_log_file
+from .utils import find_log_file, is_systemd_available
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,12 +128,126 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.error(error_msg)
         raise UpdateFailed(error_msg)
 
+    def _read_from_systemd_journal(self, days_to_review: int) -> tuple[str, int, int]:
+        """Read logs from systemd journal and filter by date range and severity.
+        
+        Args:
+            days_to_review: Number of days to look back in the journal
+            
+        Returns:
+            Tuple of (log_content, error_count, warning_count)
+        """
+        try:
+            from systemd import journal
+            
+            _LOGGER.info("Reading logs from systemd journal")
+            
+            # Create a journal reader
+            j = journal.Reader()
+            
+            # Filter by Home Assistant service identifiers
+            filters_applied = False
+            for identifier in SYSTEMD_JOURNAL_IDENTIFIERS:
+                try:
+                    # Add match using string format for clarity
+                    j.add_match(f"SYSLOG_IDENTIFIER={identifier}")
+                    filters_applied = True
+                except Exception:
+                    # Try alternate format with systemd unit
+                    try:
+                        j.add_match(f"_SYSTEMD_UNIT={identifier}.service")
+                    except Exception:
+                        pass
+            
+            if not filters_applied:
+                _LOGGER.debug("No journal filters applied, reading all entries")
+            
+            # Set time range
+            cutoff_date = datetime.now() - timedelta(days=days_to_review)
+            j.seek_realtime(cutoff_date)
+            
+            recent_lines = []
+            error_count = 0
+            warning_count = 0
+            
+            # Read journal entries
+            for entry in j:
+                try:
+                    # Get the message
+                    message = entry.get('MESSAGE', '')
+                    if not message:
+                        continue
+                    
+                    # Get priority (syslog levels: 3=error, 4=warning)
+                    priority = entry.get('PRIORITY', 6)
+                    
+                    # Get timestamp
+                    timestamp = entry.get('__REALTIME_TIMESTAMP')
+                    if timestamp:
+                        # Convert microseconds to datetime
+                        log_date = datetime.fromtimestamp(timestamp.timestamp())
+                        if log_date <= cutoff_date:
+                            continue
+                        timestamp_str = log_date.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        timestamp_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Filter by severity (priority 3=error, 4=warning)
+                    is_error = priority <= 3 or "ERROR" in message.upper()
+                    is_warning = priority == 4 or "WARNING" in message.upper()
+                    
+                    if not is_error and not is_warning:
+                        continue
+                    
+                    # Format the log line to match file format
+                    level = "ERROR" if is_error else "WARNING"
+                    formatted_line = f"{timestamp_str} {level} {message}"
+                    
+                    recent_lines.append(formatted_line)
+                    if is_error:
+                        error_count += 1
+                    if is_warning:
+                        warning_count += 1
+                        
+                except Exception as err:
+                    _LOGGER.debug(f"Error processing journal entry: {err}")
+                    continue
+            
+            filtered_content = "\n".join(recent_lines)
+            _LOGGER.info(
+                f"Read from systemd journal: {len(recent_lines)} lines, "
+                f"{error_count} errors, {warning_count} warnings"
+            )
+            return filtered_content, error_count, warning_count
+            
+        except Exception as err:
+            _LOGGER.warning(f"Failed to read from systemd journal: {err}")
+            raise
+
     def _read_and_filter_logs(self) -> tuple[str, int, int]:
-        """Read logs and filter by date range and severity."""
-        configured_path = self.config_entry.data.get(CONF_LOG_PATH, DEFAULT_LOG_PATH)
+        """Read logs and filter by date range and severity.
+        
+        Tries systemd journal first (if available), then falls back to log file.
+        This ensures compatibility with Home Assistant 2025+ which only writes to journal.
+        """
         days_to_review = self.config_entry.data.get(
             CONF_DAYS_TO_REVIEW, DEFAULT_DAYS_TO_REVIEW
         )
+        
+        # Try systemd journal first (preferred method for HA 2025+)
+        if is_systemd_available():
+            try:
+                _LOGGER.info("Attempting to read logs from systemd journal")
+                return self._read_from_systemd_journal(days_to_review)
+            except Exception as journal_err:
+                _LOGGER.warning(
+                    f"Failed to read from systemd journal, falling back to log file: {journal_err}"
+                )
+        else:
+            _LOGGER.debug("Systemd journal not available, using log file")
+        
+        # Fallback to log file (for older installations or non-systemd systems)
+        configured_path = self.config_entry.data.get(CONF_LOG_PATH, DEFAULT_LOG_PATH)
 
         try:
             # Auto-detect log file location

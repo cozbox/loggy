@@ -19,6 +19,13 @@ DEFAULT_THINKING_LEVEL = "high"
 DEFAULT_LOG_PATH = "/config/home-assistant.log"
 DEFAULT_PROVIDER = "gemini"
 
+# Systemd journal constants
+SYSTEMD_JOURNAL_IDENTIFIERS = [
+    "homeassistant",
+    "home-assistant",
+    "hass",
+]
+
 # Common log file locations for auto-detection
 LOG_PATHS = [
     "/config/home-assistant.log",  # Docker/HA OS/Supervised
