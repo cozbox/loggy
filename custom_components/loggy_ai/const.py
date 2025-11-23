@@ -19,6 +19,15 @@ DEFAULT_THINKING_LEVEL = "high"
 DEFAULT_LOG_PATH = "/config/home-assistant.log"
 DEFAULT_PROVIDER = "gemini"
 
+# Common log file locations for auto-detection
+LOG_PATHS = [
+    "/config/home-assistant.log",  # Docker/HA OS/Supervised
+    "/usr/share/hassio/homeassistant/home-assistant.log",  # Supervised (alternate)
+    "~/.homeassistant/home-assistant.log",  # Core installation
+    "/home/homeassistant/.homeassistant/home-assistant.log",  # Core (alternate)
+    "/var/lib/homeassistant/home-assistant.log",  # Some custom setups
+]
+
 PROVIDERS = {
     "gemini": {
         "name": "Google Gemini",
