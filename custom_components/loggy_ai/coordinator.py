@@ -149,12 +149,13 @@ class LoggyDataUpdateCoordinator(DataUpdateCoordinator):
             filters_applied = False
             for identifier in SYSTEMD_JOURNAL_IDENTIFIERS:
                 try:
-                    j.add_match(SYSLOG_IDENTIFIER=identifier)
+                    # Add match using string format for clarity
+                    j.add_match(f"SYSLOG_IDENTIFIER={identifier}")
                     filters_applied = True
                 except Exception:
-                    # Try alternate format
+                    # Try alternate format with systemd unit
                     try:
-                        j.add_match(_SYSTEMD_UNIT=f"{identifier}.service")
+                        j.add_match(f"_SYSTEMD_UNIT={identifier}.service")
                     except Exception:
                         pass
             
